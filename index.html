@@ -951,13 +951,17 @@ function calcScore(mockData) {
 
   // Dynamic max: SUPR 50 qs = max 50, REAP 50 qs = max 100 → total 150
   // (Could differ if mock structure changes, but default is 50+50)
-  const suprQs  = mockData.slice(0, 50).length;
-  const reapQs  = mockData.slice(50).length;
+  let suprQs = 0;
+
+  for (let i = 0; i < 50; i++) {
+    if (mockData[i].status !== "") {
+    suprQs++;
+    }
+  }
+
+  const reapQs = mockData.length - suprQs;
+
   const maxScore = suprQs * SUPR_CORRECT + reapQs * REAP_CORRECT;
-
-const reapQs = mockData.length - suprQs;
-
-const maxScore = suprQs * SUPR_CORRECT + reapQs * REAP_CORRECT;
 
   const attempted = supr.correct + supr.wrong + reap.correct + reap.wrong;
   const unattempted = supr.unattempted + reap.unattempted;
