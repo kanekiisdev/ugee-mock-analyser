@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UGEE Mock Analyser</title>
+
+<!-- Firebase CDN (compat version for v8-style API) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+<style>
+/* ===================== CSS VARIABLES ===================== */
+:root {
+  --bg:       #0a0c10;
+  --bg2:      #0f1218;
+  --bg3:      #151a22;
+  --card:     #181e28;
+  --border:   #1e2a38;
+  --accent:   #00e5ff;
+  --accent2:  #7c3aed;
+  --accent3:  #f59e0b;
+  --danger:   #ef4444;
+  --success:  #22c55e;
+  --text:     #e2e8f0;
+  --muted:    #64748b;
+  --supr:     #3b82f6;
+  --reap:     #a855f7;
+  --font-head: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+/* ===================== RESET & BASE ===================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===================== SCROLLBAR ===================== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ===================== UTILITY ===================== */
+.hidden { display: none !important; }
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.w-full { width: 100%; }
+
+/* ===================== LAYOUT ===================== */
+#app { min-height: 100vh; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ===================== TOP NAV ===================== */
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10,12,16,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topnav-brand {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.topnav-brand span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+.topnav-actions { display: flex; gap: 10px; align-items: center; }
+
+/* ===================== BUTTONS ===================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+.btn-primary:hover { background: #00b8d4; transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+.btn-accent2 {
+  background: var(--accent2);
+  color: #fff;
+}
+.btn-accent2:hover { background: #6d28d9; transform: translateY(-1px); }
+
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* ===================== CARDS ===================== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.card-title {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ===================== STAT CARDS ===================== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--accent); }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stat-card.c-accent::before { background: var(--accent); }
+.stat-card.c-success::before { background: var(--success); }
+.stat-card.c-danger::before { background: var(--danger); }
+.stat-card.c-amber::before { background: var(--accent3); }
+.stat-card.c-purple::before { background: var(--accent2); }
+.stat-card.c-blue::before { background: var(--supr); }
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--font-head);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+}
+.stat-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ===================== DASHBOARD LAYOUT ===================== */
+.dashboard-header {
+  padding: 28px 0 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dashboard-title {
+  font-family: var(--font-head);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.dashboard-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ===================== MOCK LIST ===================== */
+.mock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.mock-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.mock-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,229,255,0.08);
+}
+.mock-card-name {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.mock-card-score {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-head);
+  color: var(--accent);
+}
+.mock-card-meta {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.mock-card-bar {
+  margin-top: 12px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.mock-card-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+.mock-card-delete {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: all 0.15s;
+  display: none;
+}
+.mock-card:hover .mock-card-delete { display: block; }
+.mock-card-delete:hover { color: var(--danger); background: rgba(239,68,68,0.1); }
+
+/* ===================== CHARTS ===================== */
+.chart-wrap {
+  position: relative;
+  height: 220px;
+  width: 100%;
+}
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media(max-width: 720px) {
+  .charts-row { grid-template-columns: 1fr; }
+}
+
+/* ===================== INSIGHTS ===================== */
+.insight-list { display: flex; flex-direction: column; gap: 8px; }
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg3);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.insight-item.warn { border-left-color: var(--accent3); }
+.insight-item.good { border-left-color: var(--success); }
+.insight-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ===================== MOCK DETAIL SCREEN ===================== */
+#screen-mock { padding-bottom: 60px; }
+
+.mock-header {
+  padding: 24px 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.mock-title {
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 800;
+}
+.mock-title-edit {
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--muted);
+  color: inherit;
+  font: inherit;
+  font-family: var(--font-head);
+  font-size: 26px;
+  font-weight: 800;
+  padding: 2px 4px;
+  cursor: text;
+  outline: none;
+}
+.mock-title-edit:focus { border-bottom-color: var(--accent); }
+
+/* Scoring summary bar */
+.score-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.score-chip {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  text-align: center;
+  min-width: 80px;
+}
+.score-chip-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 4px; }
+.score-chip-val { font-family: var(--font-head); font-size: 18px; font-weight: 700; }
+.score-chip-val.pos { color: var(--success); }
+.score-chip-val.neg { color: var(--danger); }
+.score-chip-val.total { color: var(--accent); }
+
+/* ===================== QUESTION TABLE ===================== */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.question-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+.question-table th {
+  background: var(--bg2);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.question-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(30,42,56,0.6);
+  vertical-align: middle;
+}
+.question-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* Section header row */
+.section-row td {
+  background: var(--bg2) !important;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  border-top: 2px solid var(--border);
+}
+.section-label {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+.section-label.supr { color: var(--supr); }
+.section-label.reap { color: var(--reap); }
+
+.q-num {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 12px;
+  width: 36px;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* Table inputs */
+.question-table select,
+.question-table input[type="text"] {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 7px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.question-table select:focus,
+.question-table input[type="text"]:focus {
+  border-color: var(--accent);
+}
+.question-table select.status-correct  { border-color: var(--success); color: var(--success); }
+.question-table select.status-wrong    { border-color: var(--danger);  color: var(--danger);  }
+.question-table select.status-unatt   { border-color: var(--muted); }
+
+.question-table input[type="checkbox"] {
+  accent-color: var(--accent2);
+  width: 15px; height: 15px;
+  cursor: pointer;
+}
+
+.remarks-input { width: 100%; min-width: 120px; }
+.status-sel { width: 115px; }
+.error-sel  { width: 160px; }
+
+/* ===================== SECTION ANALYSIS ===================== */
+.section-analysis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media(max-width: 600px) {
+  .section-analysis { grid-template-columns: 1fr; }
+}
+.section-block {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 18px;
+}
+.section-block.supr { border-top: 2px solid var(--supr); }
+.section-block.reap { border-top: 2px solid var(--reap); }
+.section-block-title {
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+.section-block.supr .section-block-title { color: var(--supr); }
+.section-block.reap .section-block-title { color: var(--reap); }
+.mini-stat-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.mini-stat { text-align: center; }
+.mini-stat-val { font-family: var(--font-head); font-size: 20px; font-weight: 700; }
+.mini-stat-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ===================== ERROR ANALYSIS TABLE ===================== */
+.error-table { width: 100%; border-collapse: collapse; }
+.error-table td, .error-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 11px;
+}
+.error-table th { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.error-table tr:not(:last-child) td { border-bottom: 1px solid rgba(30,42,56,0.5); }
+.error-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  width: 120px;
+}
+.error-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--danger);
+}
+
+/* ===================== TOAST ===================== */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 12px;
+  color: var(--text);
+  z-index: 9999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+#toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+#toast.error { border-color: var(--danger); }
+
+/* ===================== SYNC INDICATOR ===================== */
+#sync-status {
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+#sync-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.3s;
+}
+#sync-dot.syncing { background: var(--accent3); }
+#sync-dot.synced  { background: var(--success); }
+#sync-dot.error   { background: var(--danger); }
+
+/* ===================== LOADING OVERLAY ===================== */
+#loading {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  transition: opacity 0.4s;
+}
+#loading.fade { opacity: 0; pointer-events: none; }
+.loader-ring {
+  width: 48px; height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text {
+  font-family: var(--font-head);
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+
+/* ===================== TREND ROW ===================== */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.trend-badge.up   { background: rgba(34,197,94,0.12);  color: var(--success); }
+.trend-badge.down { background: rgba(239,68,68,0.12);  color: var(--danger);  }
+.trend-badge.flat { background: rgba(100,116,139,0.12); color: var(--muted);  }
+
+/* ===================== MOBILE ===================== */
+@media(max-width: 640px) {
+  .topnav-brand span { display: none; }
+  .dashboard-title { font-size: 22px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .mock-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .score-bar { gap: 8px; }
+  .score-chip { min-width: 60px; padding: 8px 10px; }
+}
+
+/* ===================== CONFIRMATION MODAL ===================== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+}
+.modal-box h3 { font-family: var(--font-head); margin-bottom: 10px; color: var(--text); }
+.modal-box p  { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: center; }
+
+/* ===================== EMPTY STATE ===================== */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+.empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state-text { font-size: 13px; }
+
+/* Pattern Detection Pills */
+.pattern-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 3px;
+}
+.pattern-pill.highlight {
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+
+/* ===================== REVISION LOG (Feature 2) ===================== */
+.revision-table { width:100%; border-collapse:collapse; }
+.revision-table th {
+  background:var(--bg2); padding:9px 12px; text-align:left;
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:1px; color:var(--muted); border-bottom:1px solid var(--border);
+}
+.revision-table td { padding:8px 10px; font-size:11px; border-bottom:1px solid rgba(30,42,56,0.5); vertical-align:top; }
+.revision-table tr:hover td { background:rgba(255,255,255,0.02); }
+.rev-q-num { font-weight:700; color:var(--muted); width:36px; }
+.rev-section-supr { color:var(--supr); font-size:9px; font-weight:700; text-transform:uppercase; }
+.rev-section-reap { color:var(--reap); font-size:9px; font-weight:700; text-transform:uppercase; }
+.rev-error { display:inline-block; background:rgba(239,68,68,0.12); color:var(--danger); border-radius:4px; padding:2px 7px; font-size:10px; }
+.rev-remark { color:var(--muted); font-style:italic; }
+.rev-empty { text-align:center; padding:32px; color:var(--muted); font-size:12px; }
+
+/* ===================== MOCK COMPARISON (Feature 3) ===================== */
+.compare-select-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
+.compare-select-row select {
+  background:var(--bg3); border:1px solid var(--border); border-radius:6px;
+  color:var(--text); font-family:var(--font-mono); font-size:12px;
+  padding:7px 12px; outline:none; cursor:pointer; flex:1; min-width:140px;
+}
+.compare-select-row select:focus { border-color:var(--accent); }
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+@media(max-width:640px){ .compare-grid { grid-template-columns:1fr; } }
+.compare-col { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+.compare-col-title { font-family:var(--font-head); font-size:14px; font-weight:700; margin-bottom:14px; color:var(--accent); }
+.compare-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(30,42,56,0.4); font-size:12px; }
+.compare-row:last-child { border-bottom:none; }
+.compare-lbl { color:var(--muted); }
+.compare-val { font-weight:700; }
+.compare-val.better { color:var(--success); }
+.compare-val.worse  { color:var(--danger); }
+.compare-val.same   { color:var(--muted); }
+.compare-diff-bar { margin-top:20px; }
+.diff-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:6px; }
+.diff-track { height:8px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+.diff-fill-a { height:100%; background:var(--accent); border-radius:4px; transition:width 0.5s; }
+.diff-fill-b { height:100%; background:var(--accent2); border-radius:4px; transition:width 0.5s; }
+
+/* ===================== ERROR DRILLDOWN (Feature 6) ===================== */
+.drilldown-error-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+.drilldown-pill {
+  background:var(--bg3); border:1px solid var(--border); border-radius:20px;
+  padding:5px 14px; font-size:11px; color:var(--muted); cursor:pointer;
+  transition:all 0.15s;
+}
+.drilldown-pill:hover, .drilldown-pill.active {
+  border-color:var(--danger); color:var(--danger); background:rgba(239,68,68,0.08);
+}
+.drilldown-table { width:100%; border-collapse:collapse; }
+.drilldown-table th {
+  background:var(--bg2); padding:9px 12px; text-align:left;
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:1px; color:var(--muted); border-bottom:1px solid var(--border);
+}
+.drilldown-table td { padding:8px 10px; font-size:11px; border-bottom:1px solid rgba(30,42,56,0.4); }
+.drilldown-table tr:hover td { background:rgba(255,255,255,0.02); }
+.drilldown-mock-tag { background:rgba(0,229,255,0.08); color:var(--accent); border-radius:4px; padding:2px 7px; font-size:10px; }
+
+/* ===================== EXPORT PDF (Feature 8) ===================== */
+@media print {
+  .topnav, .btn, .mock-card-delete, #loading, #toast, #confirm-modal,
+  .mock-header .flex.gap-2, #mock-date-input, .feature-tabs,
+  #screen-dash { display:none !important; }
+  body { background:#fff !important; color:#000 !important; font-size:11px; }
+  .screen { display:block !important; }
+  #screen-mock { display:block !important; }
+  .card, .score-chip, .section-block { border:1px solid #ccc !important; background:#fff !important; }
+  .score-chip-val, .stat-value, .mini-stat-val { color:#000 !important; }
+  .question-table th { background:#f0f0f0 !important; color:#333 !important; }
+  .question-table select, .question-table input { border:none !important; background:transparent !important; }
+  .table-wrap { overflow:visible !important; }
+  .question-table { min-width:unset !important; }
+  #print-header { display:block !important; }
+}
+#print-header {
+  display:none;
+  font-family:var(--font-head);
+  font-size:20px;
+  font-weight:800;
+  margin-bottom:16px;
+  padding-bottom:8px;
+  border-bottom:2px solid #000;
+}
+
+/* ===================== FEATURE TABS (Mock detail) ===================== */
+.feature-tabs {
+  display:flex; gap:6px; flex-wrap:wrap;
+  margin-bottom:20px; border-bottom:1px solid var(--border);
+  padding-bottom:10px;
+}
+.feature-tab {
+  background:transparent; border:1px solid var(--border); border-radius:6px;
+  color:var(--muted); font-family:var(--font-mono); font-size:11px;
+  font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+  padding:6px 14px; cursor:pointer; transition:all 0.15s;
+}
+.feature-tab:hover { border-color:var(--accent); color:var(--accent); }
+.feature-tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
+/* ===================== SCREEN TABS (Dashboard) ===================== */
+.dash-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px; }
+.dash-tab {
+  background:transparent; border:1px solid var(--border); border-radius:6px;
+  color:var(--muted); font-family:var(--font-mono); font-size:11px;
+  font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+  padding:6px 14px; cursor:pointer; transition:all 0.15s;
+}
+.dash-tab:hover { border-color:var(--accent); color:var(--accent); }
+.dash-tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
+.dash-panel { display:none; }
+.dash-panel.active { display:block; }
+
+</style>
+</head>
+<body>
+
+<!-- =================== LOADING OVERLAY =================== -->
+<div id="loading">
+  <div class="loader-ring"></div>
+  <div class="loader-text">SYNCING DATA...</div>
+</div>
+
+<!-- =================== TOAST =================== -->
+<div id="toast"></div>
+
+<!-- =================== CONFIRMATION MODAL =================== -->
+<div id="confirm-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-msg">This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== TOP NAV =================== -->
+<nav class="topnav">
+  <div class="topnav-brand">UGEE<span>Mock Analyser</span></div>
+  <div class="topnav-actions">
+    <div id="sync-status">
+      <div id="sync-dot"></div>
+      <span id="sync-label">–</span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="forceSave()">↑ Sync</button>
+  </div>
+</nav>
+
+<!-- =================== APP =================== -->
+<div id="app">
+
+  <!-- ===== SCREEN: DASHBOARD ===== -->
+  <div id="screen-dash" class="screen active">
+    <div class="container">
+
+      <div class="dashboard-header">
+        <div>
+          <div class="dashboard-title">Performance Dashboard</div>
+          <div class="dashboard-subtitle">UGEE Preparation Analytics • Personal Tracker</div>
+        </div>
+        <button class="btn btn-primary" onclick="createNewMock()">+ New Mock</button>
+      </div>
+
+      <!-- Dashboard tabs -->
+      <div class="dash-tabs">
+        <button class="dash-tab active" onclick="switchDashTab('overview',this)">📊 Overview</button>
+        <button class="dash-tab" onclick="switchDashTab('compare',this)">⚖️ Compare Mocks</button>
+        <button class="dash-tab" onclick="switchDashTab('drilldown',this)">🔍 Error Drilldown</button>
+      </div>
+
+      <!-- PANEL: Overview -->
+      <div class="dash-panel active" id="dash-panel-overview">
+        <!-- Global stat cards -->
+        <div class="stat-grid" id="global-stats"></div>
+
+        <!-- Trend chart + Error distribution -->
+        <div class="charts-row">
+          <div class="card">
+            <div class="card-title">Score Trend</div>
+            <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+            <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;" id="trend-badges"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Overall Error Distribution</div>
+            <div class="chart-wrap"><canvas id="error-doughnut"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Global insights -->
+        <div class="card" style="margin-bottom:24px;">
+          <div class="card-title">Auto Insights & Suggestions</div>
+          <div id="global-insights" class="insight-list">
+            <div class="empty-state" style="padding:20px 0;">
+              <div class="empty-state-icon">💡</div>
+              <div class="empty-state-text">Complete at least one mock to see insights.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mock list -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+          <div class="card-title" style="margin:0;">All Mocks</div>
+        </div>
+        <div class="mock-grid" id="mock-grid"></div>
+      </div>
+
+      <!-- PANEL: Compare Mocks -->
+      <div class="dash-panel" id="dash-panel-compare">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">Compare Two Mocks</div>
+          <div class="compare-select-row">
+            <select id="compare-a" onchange="renderComparison()">
+              <option value="">— Select Mock A —</option>
+            </select>
+            <span style="color:var(--muted); font-size:18px; font-weight:700;">VS</span>
+            <select id="compare-b" onchange="renderComparison()">
+              <option value="">— Select Mock B —</option>
+            </select>
+          </div>
+          <div id="compare-output">
+            <div class="rev-empty">Select two mocks above to compare them.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: Error Drilldown -->
+      <div class="dash-panel" id="dash-panel-drilldown">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">Error Type Drilldown — All Mocks</div>
+          <div class="drilldown-error-list" id="drilldown-pills"></div>
+          <div id="drilldown-output">
+            <div class="rev-empty">Select an error type above to see all questions with that error.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== SCREEN: MOCK DETAIL ===== -->
+  <div id="screen-mock" class="screen">
+    <div class="container">
+
+      <!-- Print header (hidden on screen, shown on print) -->
+      <div id="print-header"></div>
+
+      <div class="mock-header">
+        <div class="flex items-center gap-3">
+          <button class="btn btn-ghost btn-sm" onclick="goToDash()">← Dashboard</button>
+          <input type="text" class="mock-title-edit" id="mock-name-edit" value="" onblur="renameMock(this.value)" />
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="exportMockPDF()">⬇ Export PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearMock()">Clear All</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMock()">Delete Mock</button>
+        </div>
+      </div>
+
+      <!-- Mock date + Score summary -->
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+        <span style="font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted);">Mock Date:</span>
+        <input type="date" id="mock-date-input"
+          style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; color:var(--text);
+                 font-family:var(--font-mono); font-size:12px; padding:5px 10px; outline:none; cursor:pointer;"
+          onchange="onMockDateChange(this.value)" />
+      </div>
+      <div class="score-bar" id="mock-score-bar"></div>
+
+      <!-- Feature tabs -->
+      <div class="feature-tabs">
+        <button class="feature-tab active" onclick="switchMockTab('analysis',this)">📈 Analysis</button>
+        <button class="feature-tab" onclick="switchMockTab('questions',this)">📋 Questions</button>
+        <button class="feature-tab" onclick="switchMockTab('revision',this)">📝 Revision Log</button>
+      </div>
+
+      <!-- TAB: Analysis -->
+      <div id="mock-tab-analysis">
+        <!-- Section analysis -->
+        <div class="section-analysis" id="section-analysis"></div>
+
+        <!-- Mock insights + Patterns -->
+        <div class="charts-row" style="margin-bottom:24px;">
+          <div class="card">
+            <div class="card-title">Error Analysis (Wrong Qs Only)</div>
+            <table class="error-table">
+              <thead><tr><th>Error Type</th><th>Count</th><th>Distribution</th><th>%</th></tr></thead>
+              <tbody id="mock-error-table"></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-title">Patterns & Insights</div>
+            <div id="mock-insights" class="insight-list"></div>
+            <div style="margin-top:14px;">
+              <div class="card-title" style="margin-bottom:8px;">Detected Patterns</div>
+              <div id="mock-patterns"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Questions -->
+      <div id="mock-tab-questions" style="display:none;">
+        <div class="table-wrap">
+          <table class="question-table" id="question-table">
+            <thead>
+              <tr>
+                <th style="width:36px">#</th>
+                <th>Status</th>
+                <th>Error Type</th>
+                <th>Reattempt</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="question-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: Revision Log -->
+      <div id="mock-tab-revision" style="display:none;">
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">Revision Log — Wrong Questions Only</div>
+          <div id="revision-log-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- =================== JAVASCRIPT =================== -->
+<script>
+/* ================================================================
+   FIREBASE CONFIG — REPLACE WITH YOUR OWN
+   ================================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBPbhgyFDRotRh-IifA0TSlj34A_MdnQgY",
+  authDomain: "http://ugee-mock-analyser.firebaseapp.com",
+  projectId: "ugee-mock-analyser"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ================================================================
+   CONSTANTS
+   ================================================================ */
+const DEVICE_ID   = "sehjal_ugee_tracker";
+const COLLECTION  = "ugee";
+
+const DEFAULT_MOCKS = [ "Mock 1", "Mock 2","Mock 3","Mock 4","Mock 5",
+  "Mock 6","Mock 7","Mock 8","Mock 9","Mock 10",
+  "PYP 2025"
+];
+
+const ERROR_TYPES = [
+  "Concept Issue","Approach Error","Language Error","Reading Error",
+  "Logical Error","Careless Mistake","Calculation Error",
+  "Strategy / Time Error","Decision Error","Out of Syllabus"
+];
+
+const STATUS_OPTIONS = ["","Correct","Wrong","Unattempted"];
+
+/* Scoring constants */
+const SUPR_CORRECT = 1;
+const SUPR_WRONG   = -0.25;
+const REAP_CORRECT = 2;
+const REAP_WRONG   = -0.5;
+
+/* ================================================================
+   APPLICATION STATE
+   ================================================================ */
+let appData = {};    // { "Mock 1": [ {status, error, reattempt, remarks}, ... ], ... }
+let appMeta = {};    // { "Mock 1": { date: "" }, ... }  — stores per-mock metadata
+let currentMock = null;
+let trendChart   = null;
+let errorChart   = null;
+let saveTimeout  = null;
+
+/* ================================================================
+   INIT
+   ================================================================ */
+window.addEventListener("DOMContentLoaded", initApp);
+
+async function initApp() {
+  try {
+    const doc = await db.collection(COLLECTION).doc(DEVICE_ID).get();
+    if (doc.exists) {
+      // Data exists — load exactly what is stored, respect all user deletions/renames
+      appData = doc.data().mocks || {};
+      appMeta = doc.data().meta  || {};
+      // Only ensure meta entries exist for mocks that are actually in appData
+      Object.keys(appData).forEach(m => { if (!appMeta[m]) appMeta[m] = { date: "" }; });
+    } else {
+      // FIRST RUN ONLY — no data in Firestore yet, seed with defaults
+      DEFAULT_MOCKS.forEach(m => { appData[m] = createEmptyMock(); });
+      DEFAULT_MOCKS.forEach(m => { appMeta[m] = { date: "" }; });
+      await saveToFirestore(true);
+    }
+    setSyncStatus("synced");
+  } catch(e) {
+    // Offline fallback — only seed if appData is completely empty (first ever load)
+    console.warn("Firestore unavailable, using local state.", e);
+    if (Object.keys(appData).length === 0) {
+      DEFAULT_MOCKS.forEach(m => { appData[m] = createEmptyMock(); });
+      DEFAULT_MOCKS.forEach(m => { appMeta[m] = { date: "" }; });
+    }
+    setSyncStatus("error");
+    showToast("Cloud sync unavailable. Working offline.", true);
+  }
+  hideLoading();
+  renderDashboard();
+}
+
+/* ================================================================
+   DATA HELPERS
+   ================================================================ */
+function createEmptyMock() {
+  return Array.from({length: 100}, () => ({
+    status: "", error: "", reattempt: false, remarks: ""
+  }));
+}
+
+function getMockList() {
+  const keys = Object.keys(appData);
+
+  // Extract numeric mock number from names like "Mock 2", "Mock 10"
+  function mockSortKey(name) {
+    // "PYP 2025" or any PYP variant → always first
+    if (/^PYP/i.test(name)) return [0, 0, name];
+    // "Mock N" → sort numerically
+    const m = name.match(/^Mock\s+(\d+)$/i);
+    if (m) return [1, parseInt(m[1], 10), name];
+    // Everything else → alphabetically at end
+    return [2, 0, name];
+  }
+
+  return keys.sort((a, b) => {
+    const ka = mockSortKey(a);
+    const kb = mockSortKey(b);
+    if (ka[0] !== kb[0]) return ka[0] - kb[0];   // group order
+    if (ka[1] !== kb[1]) return ka[1] - kb[1];   // numeric order within group
+    return ka[2].localeCompare(kb[2]);            // alphabetic fallback
+  });
+}
+
+/* Determine section: questions 1-50 = SUPR, 51-100 = REAP */
+function getSection(idx) { return idx < 50 ? "SUPR" : "REAP"; }
+
+/* ================================================================
+   SCORING ENGINE
+   ================================================================ */
+function calcScore(mockData) {
+  let supr = { correct:0, wrong:0, unattempted:0, pos:0, neg:0 };
+  let reap = { correct:0, wrong:0, unattempted:0, pos:0, neg:0 };
+
+  // Dynamic SUPR count: filled rows (status !== "") in first 50 slots
+  let suprQs = 0;
+  for (let i = 0; i < 50; i++) {
+    if (mockData[i] && mockData[i].status !== "") suprQs++;
+  }
+  // Dynamic REAP count: filled rows (status !== "") in slots 50–99
+  let reapQs = 0;
+  for (let i = 50; i < mockData.length; i++) {
+    if (mockData[i] && mockData[i].status !== "") reapQs++;
+  }
+
+  mockData.forEach((q, i) => {
+    const sec = getSection(i);
+    const s = q.status;
+    if (s === "Correct") {
+      if (sec === "SUPR") { supr.correct++; supr.pos += SUPR_CORRECT; }
+      else                { reap.correct++; reap.pos += REAP_CORRECT; }
+    } else if (s === "Wrong") {
+      if (sec === "SUPR") { supr.wrong++; supr.neg += Math.abs(SUPR_WRONG); }
+      else                { reap.wrong++; reap.neg += Math.abs(REAP_WRONG); }
+    }
+    // Empty status (""): not counted in unattempted — only filled rows matter
+  });
+
+  const suprTotal = supr.pos - supr.neg;
+  const reapTotal = reap.pos - reap.neg;
+  const total     = suprTotal + reapTotal;
+
+  // Dynamic max score based on filled questions only
+  const maxScore = suprQs * SUPR_CORRECT + reapQs * REAP_CORRECT;
+
+  const attempted   = supr.correct + supr.wrong + reap.correct + reap.wrong;
+  const unattempted = (suprQs - supr.correct - supr.wrong) + (reapQs - reap.correct - reap.wrong);
+  const correct  = supr.correct + reap.correct;
+  const wrong    = supr.wrong   + reap.wrong;
+  const posScore = supr.pos + reap.pos;
+  const negScore = supr.neg + reap.neg;
+  const accuracy = attempted > 0 ? ((correct / attempted) * 100).toFixed(1) : "0.0";
+
+  return {
+    supr, reap,
+    suprScore: suprTotal, reapScore: reapTotal,
+    total, maxScore, attempted, unattempted,
+    correct, wrong, posScore, negScore, accuracy,
+    suprQs, reapQs
+  };
+}
+
+/* ================================================================
+   ERROR ANALYSIS
+   ================================================================ */
+function calcErrors(mockData) {
+  const counts = {};
+  ERROR_TYPES.forEach(e => { counts[e] = { total:0, supr:0, reap:0 }; });
+
+  mockData.forEach((q, i) => {
+    if (q.status === "Wrong" && q.error && counts[q.error] !== undefined) {
+      counts[q.error].total++;
+      if (getSection(i) === "SUPR") counts[q.error].supr++;
+      else                          counts[q.error].reap++;
+    }
+  });
+
+  const total = Object.values(counts).reduce((s, c) => s + c.total, 0);
+  const sorted = ERROR_TYPES
+    .filter(e => counts[e].total > 0)
+    .sort((a, b) => counts[b].total - counts[a].total);
+
+  const biggest = sorted[0] || null;
+  const biggestPct = biggest && total > 0
+    ? ((counts[biggest].total / total) * 100).toFixed(1) : "0";
+
+  return { counts, total, sorted, biggest, biggestPct };
+}
+
+/* ================================================================
+   PATTERN DETECTION
+   ================================================================ */
+function detectPatterns(errors) {
+  const patterns = [];
+  const c = errors.counts;
+  const t = errors.total;
+  if (!t) return patterns;
+
+  const pct = e => t > 0 ? (c[e].total / t * 100) : 0;
+
+  if (pct("Language Error") + pct("Reading Error") > 25)
+    patterns.push({ text: "High Language/Reading Errors → REAP comprehension issue", type: "warn" });
+  if (pct("Concept Issue") + pct("Approach Error") > 30)
+    patterns.push({ text: "High Concept/Approach Errors → Fundamentals need revision", type: "warn" });
+  if (pct("Careless Mistake") + pct("Calculation Error") > 25)
+    patterns.push({ text: "High Careless/Calculation Errors → Accuracy focus needed", type: "warn" });
+  if (pct("Decision Error") + pct("Strategy / Time Error") > 20)
+    patterns.push({ text: "High Decision/Strategy Errors → Exam mindset & pacing issue", type: "warn" });
+  if (pct("Out of Syllabus") > 10)
+    patterns.push({ text: "Several 'Out of Syllabus' marked → Verify topic coverage", type: "warn" });
+  if (errors.counts["Language Error"].reap > errors.counts["Language Error"].supr)
+    patterns.push({ text: "Language errors concentrated in REAP → Focus reading speed", type: "warn" });
+  if (errors.counts["Concept Issue"].supr > errors.counts["Concept Issue"].reap)
+    patterns.push({ text: "Concept issues concentrated in SUPR → Revise SUPR topics", type: "warn" });
+  if (!patterns.length)
+    patterns.push({ text: "No dominant error pattern detected — well balanced!", type: "good" });
+
+  return patterns;
+}
+
+/* ================================================================
+   AUTO SUGGESTIONS (Global)
+   ================================================================ */
+function generateGlobalInsights(allMockKeys) {
+  const insights = [];
+  const allErrors = {};
+  ERROR_TYPES.forEach(e => { allErrors[e] = 0; });
+
+  let totalWrong = 0;
+  const scores = [];
+
+  allMockKeys.forEach(mk => {
+    const data = appData[mk];
+    const sc = calcScore(data);
+    if (sc.attempted > 0) scores.push({ name: mk, score: sc.total, max: sc.maxScore });
+    data.forEach(q => {
+      if (q.status === "Wrong" && q.error && allErrors[q.error] !== undefined) {
+        allErrors[q.error]++;
+        totalWrong++;
+      }
+    });
+  });
+
+  if (!scores.length) return [];
+
+  // Score trend
+  if (scores.length >= 3) {
+    const last3 = scores.slice(-3).map(s => s.score);
+    const delta = last3[2] - last3[0];
+    if (delta > 5)       insights.push({ icon:"📈", text:"Your scores are trending UP over the last 3 mocks. Keep the momentum!", type:"good" });
+    else if (delta < -5) insights.push({ icon:"📉", text:"Scores trending DOWN over last 3 mocks. Review your preparation strategy.", type:"warn" });
+    else                 insights.push({ icon:"➡️", text:"Scores plateaued over last 3 mocks. Try targeting your weakest error type.", type:"" });
+  }
+
+  if (!totalWrong) { insights.push({ icon:"🎯", text:"No errors logged yet. Add question data to get insights.", type:"" }); return insights; }
+
+  const sorted = ERROR_TYPES.filter(e => allErrors[e] > 0).sort((a,b) => allErrors[b]-allErrors[a]);
+  const top = sorted[0];
+  const pct = e => (allErrors[e]/totalWrong*100).toFixed(0);
+
+  if (top) {
+    const map = {
+      "Reading Error":    { icon:"📖", text:`High Reading Errors (${pct(top)}%) → Slow down and read carefully in REAP section.` },
+      "Language Error":   { icon:"📝", text:`High Language Errors (${pct(top)}%) → Improve vocabulary and comprehension for REAP.` },
+      "Concept Issue":    { icon:"📚", text:`High Concept Issues (${pct(top)}%) → Revise core fundamentals for SUPR section.` },
+      "Approach Error":   { icon:"🔍", text:`High Approach Errors (${pct(top)}%) → Practice varied problem-solving methods.` },
+      "Careless Mistake": { icon:"⚠️", text:`High Careless Mistakes (${pct(top)}%) → Slow down and double-check answers.` },
+      "Calculation Error":{ icon:"🧮", text:`High Calculation Errors (${pct(top)}%) → Practice mental math and verify calculations.` },
+      "Decision Error":   { icon:"🧠", text:`High Decision Errors (${pct(top)}%) → Avoid overthinking; trust your first instinct.` },
+      "Strategy / Time Error":{ icon:"⏱️", text:`High Strategy/Time Errors (${pct(top)}%) → Work on time management and question selection.` },
+      "Logical Error":    { icon:"🔗", text:`High Logical Errors (${pct(top)}%) → Practice step-by-step reasoning.` },
+      "Out of Syllabus":  { icon:"📋", text:`Multiple "Out of Syllabus" (${pct(top)}%) → Confirm topic list against official UGEE syllabus.` },
+    };
+    if (map[top]) insights.push({ ...map[top], type:"warn" });
+  }
+
+  // Accuracy average
+  const avgAcc = scores.length
+    ? (scores.reduce((s,x) => s + (x.score/x.max*100), 0) / scores.length).toFixed(1)
+    : 0;
+  if (parseFloat(avgAcc) < 50)
+    insights.push({ icon:"🎯", text:`Average score percentage is ${avgAcc}%. Focus on accuracy over attempts.`, type:"warn" });
+  else
+    insights.push({ icon:"✅", text:`Average score percentage is ${avgAcc}%. ${parseFloat(avgAcc) > 70 ? "Excellent work!" : "Good progress."}`, type: parseFloat(avgAcc)>70?"good":"" });
+
+  return insights;
+}
+
+/* ================================================================
+   DASHBOARD RENDER
+   ================================================================ */
+function renderDashboard() {
+  const mocks = getMockList();
+
+  // Build scores array with date info, then sort chronologically by date
+  const scores = mocks.map(mk => {
+    const sc = calcScore(appData[mk]);
+    const date = (appMeta[mk] && appMeta[mk].date) ? appMeta[mk].date : "";
+    return { name: mk, date, ...sc };
+  }).filter(s => s.attempted > 0);
+
+  // Sort: mocks with dates come first (chronological), undated mocks keep original order at end
+  scores.sort((a, b) => {
+    if (a.date && b.date) return a.date.localeCompare(b.date);
+    if (a.date && !b.date) return -1;
+    if (!a.date && b.date) return 1;
+    return 0; // both undated — preserve original order
+  });
+
+  const totalMocks = mocks.length;
+  const attempted  = scores.length;
+  const latestScore = scores.length ? scores[scores.length-1].total : "—";
+  const latestName  = scores.length ? scores[scores.length-1].name  : "–";
+  const bestScore   = scores.length ? Math.max(...scores.map(s=>s.total)) : "—";
+  const avgScore    = scores.length ? (scores.reduce((a,s)=>a+s.total,0)/scores.length).toFixed(1) : "—";
+  const overallAcc  = scores.length
+    ? (scores.reduce((a,s)=>a+parseFloat(s.accuracy),0)/scores.length).toFixed(1)+"%"
+    : "—";
+
+  // Global biggest weakness
+  const allErrors = {};
+  ERROR_TYPES.forEach(e => { allErrors[e] = 0; });
+  let totalWrong = 0;
+  mocks.forEach(mk => {
+    appData[mk].forEach(q => {
+      if (q.status === "Wrong" && q.error && allErrors[q.error] !== undefined) {
+        allErrors[q.error]++;
+        totalWrong++;
+      }
+    });
+  });
+  const sortedErr = ERROR_TYPES.filter(e=>allErrors[e]>0).sort((a,b)=>allErrors[b]-allErrors[a]);
+  const biggestWeak = sortedErr[0] || "—";
+  const biggestPct  = totalWrong && biggestWeak !== "—"
+    ? ` (${(allErrors[biggestWeak]/totalWrong*100).toFixed(0)}%)`
+    : "";
+
+  // Render stat grid
+  const statsEl = document.getElementById("global-stats");
+  statsEl.innerHTML = `
+    <div class="stat-card c-accent">
+      <div class="stat-label">Total Mocks</div>
+      <div class="stat-value">${totalMocks}</div>
+      <div class="stat-sub">${attempted} with data</div>
+    </div>
+    <div class="stat-card c-blue">
+      <div class="stat-label">Latest Score</div>
+      <div class="stat-value">${typeof latestScore === 'number' ? latestScore.toFixed(2) : latestScore}</div>
+      <div class="stat-sub">${latestName}</div>
+    </div>
+    <div class="stat-card c-success">
+      <div class="stat-label">Best Score</div>
+      <div class="stat-value">${typeof bestScore === 'number' ? bestScore.toFixed(2) : bestScore}</div>
+    </div>
+    <div class="stat-card c-amber">
+      <div class="stat-label">Average Score</div>
+      <div class="stat-value">${avgScore}</div>
+    </div>
+    <div class="stat-card c-purple">
+      <div class="stat-label">Overall Accuracy</div>
+      <div class="stat-value" style="font-size:22px;">${overallAcc}</div>
+    </div>
+    <div class="stat-card c-danger">
+      <div class="stat-label">Biggest Weakness</div>
+      <div class="stat-value" style="font-size:15px; word-break:break-word;">${biggestWeak}</div>
+      <div class="stat-sub">${biggestPct}</div>
+    </div>
+  `;
+
+  // Mock cards
+  const grid = document.getElementById("mock-grid");
+  grid.innerHTML = "";
+  mocks.forEach(mk => {
+    const sc = calcScore(appData[mk]);
+    const pct = sc.attempted > 0 ? ((sc.total / sc.maxScore) * 100) : 0;
+    const card = document.createElement("div");
+    card.className = "mock-card";
+    card.innerHTML = `
+      <button class="mock-card-delete" title="Delete mock" onclick="event.stopPropagation(); confirmDeleteMock('${mk}')">✕</button>
+      <div class="mock-card-name">${mk}</div>
+      <div class="mock-card-score">${sc.attempted > 0 ? sc.total.toFixed(2) : '—'}</div>
+      <div class="mock-card-meta">
+        ${sc.attempted > 0
+          ? `${sc.correct}✓ ${sc.wrong}✗ &nbsp;|&nbsp; Acc: ${sc.accuracy}%`
+          : 'No data yet'}
+      </div>
+      <div class="mock-card-meta" style="margin-top:3px; color:var(--muted);">
+        ${(appMeta[mk] && appMeta[mk].date) ? '📅 ' + appMeta[mk].date : ''}
+      </div>
+      <div class="mock-card-bar">
+        <div class="mock-card-bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div>
+      </div>
+    `;
+    card.addEventListener("click", () => openMock(mk));
+    grid.appendChild(card);
+  });
+
+  // Trend chart
+  renderTrendChart(scores);
+
+  // Error doughnut
+  renderErrorDoughnut(mocks);
+
+  // Insights (pass sorted score names for trend analysis)
+  renderGlobalInsights(scores.map(s => s.name));
+}
+
+function renderTrendChart(scores) {
+  const canvas = document.getElementById("trend-chart");
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+
+  const badgesEl = document.getElementById("trend-badges");
+  badgesEl.innerHTML = "";
+
+  if (scores.length < 2) {
+    canvas.parentElement.innerHTML += "";
+    return;
+  }
+
+  // Trend detection
+  let trend = "flat";
+  if (scores.length >= 3) {
+    const first = scores.slice(0, Math.ceil(scores.length/2)).reduce((a,s)=>a+s.total,0) / Math.ceil(scores.length/2);
+    const last  = scores.slice(-Math.ceil(scores.length/2)).reduce((a,s)=>a+s.total,0) / Math.ceil(scores.length/2);
+    if (last - first > 3) trend = "up";
+    else if (first - last > 3) trend = "down";
+  }
+
+  const badge = document.createElement("div");
+  badge.className = `trend-badge ${trend}`;
+  badge.textContent = trend === "up" ? "↑ Improving" : trend === "down" ? "↓ Declining" : "→ Plateau";
+  badgesEl.appendChild(badge);
+
+  // Store scores on canvas for click handler
+  canvas._trendScores = scores;
+
+  trendChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: scores.map(s => s.name),
+      datasets: [{
+        label: "Score",
+        data: scores.map(s => +s.total.toFixed(2)),
+        borderColor: "#00e5ff",
+        backgroundColor: "rgba(0,229,255,0.08)",
+        pointBackgroundColor: scores.map(s => {
+          // Highlight highest point in amber
+          const max = Math.max(...scores.map(x => x.total));
+          return s.total === max ? "#f59e0b" : "#00e5ff";
+        }),
+        pointRadius: scores.map(s => {
+          const max = Math.max(...scores.map(x => x.total));
+          return s.total === max ? 8 : 5;
+        }),
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => ctx[0].label,
+            afterBody: ctx => {
+              const idx = ctx[0].dataIndex;
+              const sc = scores[idx];
+              return [
+                `SUPR: ${sc.suprScore.toFixed(2)} / ${sc.suprQs}`,
+                `REAP: ${sc.reapScore.toFixed(2)} / ${sc.reapQs * 2}`,
+                `Total: ${sc.total.toFixed(2)} / ${sc.maxScore}`,
+                `Accuracy: ${sc.accuracy}%`
+              ];
+            },
+            label: () => ''
+          },
+          backgroundColor: '#181e28',
+          titleColor: '#00e5ff',
+          bodyColor: '#e2e8f0',
+          borderColor: '#1e2a38',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+        y: { ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } }
+      },
+      onClick: (evt, elements) => {
+        if (elements.length > 0) {
+          const idx = elements[0].index;
+          const sc = scores[idx];
+          showToast(`${sc.name} — SUPR: ${sc.suprScore.toFixed(2)}  REAP: ${sc.reapScore.toFixed(2)}  Total: ${sc.total.toFixed(2)}`);
+        }
+      }
+    }
+  });
+}
+
+function renderErrorDoughnut(mocks) {
+  const canvas = document.getElementById("error-doughnut");
+  if (errorChart) { errorChart.destroy(); errorChart = null; }
+
+  const counts = {};
+  ERROR_TYPES.forEach(e => { counts[e] = 0; });
+
+  mocks.forEach(mk => {
+    appData[mk].forEach(q => {
+      if (q.status === "Wrong" && q.error && counts[q.error] !== undefined)
+        counts[q.error]++;
+    });
+  });
+
+  const labels = ERROR_TYPES.filter(e => counts[e] > 0);
+  const data   = labels.map(e => counts[e]);
+  const colors = [
+    "#ef4444","#f59e0b","#22c55e","#3b82f6","#a855f7",
+    "#ec4899","#06b6d4","#84cc16","#fb923c","#94a3b8"
+  ];
+
+  if (!data.length) return;
+
+  errorChart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:"right", labels:{ color:"#94a3b8", font:{size:10}, boxWidth:10, padding:8 } }
+      }
+    }
+  });
+}
+
+function renderGlobalInsights(mocks) {
+  const el = document.getElementById("global-insights");
+  const insights = generateGlobalInsights(mocks);
+  if (!insights.length) return;
+  el.innerHTML = insights.map(i => `
+    <div class="insight-item ${i.type || ''}">
+      <span class="insight-icon">${i.icon || '💡'}</span>
+      <span>${i.text}</span>
+    </div>
+  `).join("");
+}
+
+/* ================================================================
+   MOCK DETAIL RENDER
+   ================================================================ */
+function openMock(mockName) {
+  currentMock = mockName;
+  document.getElementById("screen-dash").classList.remove("active");
+  document.getElementById("screen-mock").classList.add("active");
+  document.getElementById("mock-name-edit").value = mockName;
+  // Populate date field
+  if (!appMeta[mockName]) appMeta[mockName] = { date: "" };
+  document.getElementById("mock-date-input").value = appMeta[mockName].date || "";
+  renderMockDetail();
+  window.scrollTo(0,0);
+}
+
+function goToDash() {
+  document.getElementById("screen-mock").classList.remove("active");
+  document.getElementById("screen-dash").classList.add("active");
+  currentMock = null;
+  renderDashboard();
+  window.scrollTo(0,0);
+}
+
+function renderMockDetail() {
+  if (!currentMock) return;
+  const data = appData[currentMock];
+  const sc   = calcScore(data);
+  const err  = calcErrors(data);
+
+  // Score bar
+  renderScoreBar(sc);
+
+  // Section analysis
+  renderSectionAnalysis(sc);
+
+  // Error table
+  renderMockErrorTable(err);
+
+  // Insights
+  renderMockInsights(err);
+
+  // Question table
+  renderQuestionTable(data);
+}
+
+function renderScoreBar(sc) {
+  const bar = document.getElementById("mock-score-bar");
+  bar.innerHTML = `
+    <div class="score-chip">
+      <div class="score-chip-label">Total Score</div>
+      <div class="score-chip-val total">${sc.total.toFixed(2)}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">Max Score</div>
+      <div class="score-chip-val">${sc.maxScore}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">Attempted</div>
+      <div class="score-chip-val">${sc.attempted}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">Unattempted</div>
+      <div class="score-chip-val">${sc.unattempted}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">Correct</div>
+      <div class="score-chip-val pos">${sc.correct}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">Wrong</div>
+      <div class="score-chip-val neg">${sc.wrong}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">+ve Score</div>
+      <div class="score-chip-val pos">+${sc.posScore.toFixed(2)}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">-ve Score</div>
+      <div class="score-chip-val neg">-${sc.negScore.toFixed(2)}</div>
+    </div>
+    <div class="score-chip">
+      <div class="score-chip-label">Accuracy</div>
+      <div class="score-chip-val">${sc.accuracy}%</div>
+    </div>
+  `;
+}
+
+function renderSectionAnalysis(sc) {
+  const el = document.getElementById("section-analysis");
+  const suprMax = sc.suprQs * SUPR_CORRECT;
+  const reapMax = sc.reapQs * REAP_CORRECT;
+
+  el.innerHTML = `
+    <div class="section-block supr">
+      <div class="section-block-title">SUPR (Q1–50)</div>
+      <div class="mini-stat-row">
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--accent)">${sc.suprScore.toFixed(2)}</div>
+          <div class="mini-stat-lbl">Score / ${suprMax}</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--success)">${sc.supr.correct}</div>
+          <div class="mini-stat-lbl">Correct</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--danger)">${sc.supr.wrong}</div>
+          <div class="mini-stat-lbl">Wrong</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val">${sc.supr.unattempted}</div>
+          <div class="mini-stat-lbl">Unattempted</div>
+        </div>
+      </div>
+    </div>
+    <div class="section-block reap">
+      <div class="section-block-title">REAP (Q51–100)</div>
+      <div class="mini-stat-row">
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--accent)">${sc.reapScore.toFixed(2)}</div>
+          <div class="mini-stat-lbl">Score / ${reapMax}</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--success)">${sc.reap.correct}</div>
+          <div class="mini-stat-lbl">Correct</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val" style="color:var(--danger)">${sc.reap.wrong}</div>
+          <div class="mini-stat-lbl">Wrong</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-val">${sc.reap.unattempted}</div>
+          <div class="mini-stat-lbl">Unattempted</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMockErrorTable(err) {
+  const tbody = document.getElementById("mock-error-table");
+  if (!err.sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="color:var(--muted);padding:16px;text-align:center;">No wrong answers recorded yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = err.sorted.map(e => {
+    const cnt  = err.counts[e].total;
+    const pct  = err.total ? (cnt / err.total * 100).toFixed(1) : 0;
+    const w    = Math.round(pct);
+    return `
+      <tr>
+        <td>${e}</td>
+        <td style="font-weight:700;color:var(--danger)">${cnt}</td>
+        <td>
+          <div class="error-bar">
+            <div class="error-bar-fill" style="width:${w}%"></div>
+          </div>
+        </td>
+        <td style="color:var(--muted)">${pct}%</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderMockInsights(err) {
+  const insEl  = document.getElementById("mock-insights");
+  const patEl  = document.getElementById("mock-patterns");
+  const patterns = detectPatterns(err);
+
+  // Map patterns to insights (with icons)
+  const iconMap = {
+    "warn": "⚠️", "good": "✅", "": "💡"
+  };
+  insEl.innerHTML = patterns.map(p => `
+    <div class="insight-item ${p.type}">
+      <span class="insight-icon">${iconMap[p.type] || '💡'}</span>
+      <span>${p.text}</span>
+    </div>
+  `).join("") || `<div style="color:var(--muted);font-size:12px;padding:8px 0;">No patterns detected yet.</div>`;
+
+  // Biggest weakness pill
+  if (err.biggest) {
+    patEl.innerHTML = `
+      <span class="pattern-pill highlight">⚡ Biggest: ${err.biggest} (${err.biggestPct}%)</span>
+      ${err.counts["Language Error"].reap > 0 ? '<span class="pattern-pill">📖 REAP Reading</span>' : ""}
+      ${err.counts["Concept Issue"].supr > 0  ? '<span class="pattern-pill">📐 SUPR Concepts</span>' : ""}
+    `;
+  } else {
+    patEl.innerHTML = `<span class="pattern-pill">No errors logged yet</span>`;
+  }
+}
+
+function renderQuestionTable(data) {
+  const tbody = document.getElementById("question-tbody");
+  tbody.innerHTML = "";
+
+  data.forEach((q, i) => {
+    const qNum   = i + 1;
+    const sec    = getSection(i);
+    const isFirst = i === 0 || getSection(i-1) !== sec;
+
+    // Section header row
+    if (isFirst) {
+      const hr = document.createElement("tr");
+      hr.className = "section-row";
+      hr.innerHTML = `<td colspan="5">
+        <span class="section-label ${sec.toLowerCase()}">${sec} — Questions ${sec==="SUPR"?"1–50":"51–100"}</span>
+        <span style="color:var(--muted);font-size:10px;margin-left:10px;">
+          ${sec==="SUPR" ? "+1 correct, −0.25 wrong" : "+2 correct, −0.5 wrong"}
+        </span>
+      </td>`;
+      tbody.appendChild(hr);
+    }
+
+    const tr = document.createElement("tr");
+    tr.dataset.idx = i;
+    tr.innerHTML = `
+      <td class="q-num">${qNum}</td>
+      <td>
+        <select class="status-sel" data-idx="${i}" onchange="onStatusChange(this)">
+          ${STATUS_OPTIONS.map(s => `<option value="${s}" ${q.status===s?"selected":""}>${s || "—"}</option>`).join("")}
+        </select>
+      </td>
+      <td>
+        <select class="error-sel" data-idx="${i}" onchange="onErrorChange(this)" ${q.status!=="Wrong"?"disabled":""}>
+          <option value="">—</option>
+          ${ERROR_TYPES.map(e => `<option value="${e}" ${q.error===e?"selected":""}>${e}</option>`).join("")}
+        </select>
+      </td>
+      <td style="text-align:center;">
+        <input type="checkbox" data-idx="${i}" onchange="onReattemptChange(this)" ${q.reattempt?"checked":""} />
+      </td>
+      <td>
+        <input type="text" class="remarks-input" data-idx="${i}" value="${escapeHtml(q.remarks)}"
+          placeholder="remarks..." oninput="onRemarksChange(this)" />
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    // Apply status color to select
+    const sel = tr.querySelector(".status-sel");
+    applyStatusClass(sel, q.status);
+  });
+}
+
+/* ================================================================
+   TABLE INPUT HANDLERS
+   ================================================================ */
+function onStatusChange(sel) {
+  const idx = +sel.dataset.idx;
+  const val = sel.value;
+  appData[currentMock][idx].status = val;
+  applyStatusClass(sel, val);
+
+  // Enable/disable error dropdown
+  const row = document.querySelector(`tr[data-idx="${idx}"]`);
+  const errSel = row ? row.querySelector(".error-sel") : null;
+  if (errSel) {
+    if (val !== "Wrong") {
+      errSel.disabled = true;
+      errSel.value = "";
+      appData[currentMock][idx].error = "";
+    } else {
+      errSel.disabled = false;
+    }
+  }
+
+  scheduleSave();
+  updateMockAnalysis();
+}
+
+function onErrorChange(sel) {
+  const idx = +sel.dataset.idx;
+  appData[currentMock][idx].error = sel.value;
+  scheduleSave();
+  updateMockAnalysis();
+}
+
+function onReattemptChange(chk) {
+  const idx = +chk.dataset.idx;
+  appData[currentMock][idx].reattempt = chk.checked;
+  scheduleSave();
+}
+
+function onRemarksChange(inp) {
+  const idx = +inp.dataset.idx;
+  appData[currentMock][idx].remarks = inp.value;
+  scheduleSave();
+}
+
+function applyStatusClass(sel, val) {
+  sel.classList.remove("status-correct","status-wrong","status-unatt");
+  if (val === "Correct")     sel.classList.add("status-correct");
+  else if (val === "Wrong")  sel.classList.add("status-wrong");
+  else if (val === "Unattempted") sel.classList.add("status-unatt");
+}
+
+function updateMockAnalysis() {
+  const data = appData[currentMock];
+  const sc   = calcScore(data);
+  const err  = calcErrors(data);
+  renderScoreBar(sc);
+  renderSectionAnalysis(sc);
+  renderMockErrorTable(err);
+  renderMockInsights(err);
+}
+
+/* ================================================================
+   MOCK MANAGEMENT
+   ================================================================ */
+function createNewMock() {
+  const mocks = getMockList();
+  let num = mocks.filter(m => m.startsWith("Mock ")).length + 1;
+  let name = `Mock ${num}`;
+  while (appData[name]) { num++; name = `Mock ${num}`; }
+  appData[name] = createEmptyMock();
+  appMeta[name] = { date: "" };
+  scheduleSave();
+  renderDashboard();
+  showToast(`"${name}" created!`);
+}
+
+function renameMock(newName) {
+  newName = newName.trim();
+  if (!newName || newName === currentMock) return;
+  if (appData[newName]) { showToast("A mock with that name already exists.", true); return; }
+
+  const oldData = appData[currentMock];
+  const oldMeta = appMeta[currentMock] || { date: "" };
+  delete appData[currentMock];
+  delete appMeta[currentMock];
+  appData[newName] = oldData;
+  appMeta[newName] = oldMeta;
+  currentMock = newName;
+  // Keep the input field in sync with the new name
+  const nameInput = document.getElementById("mock-name-edit");
+  if (nameInput) nameInput.value = newName;
+  scheduleSave();
+  showToast(`Renamed to "${newName}"`);
+}
+
+function deleteMock() {
+  confirmAction(
+    "Delete Mock",
+    `Delete "${currentMock}"? All data will be lost.`,
+    () => {
+      delete appData[currentMock];
+      delete appMeta[currentMock];
+      scheduleSave();
+      goToDash();
+      showToast("Mock deleted.");
+    }
+  );
+}
+
+function confirmDeleteMock(mk) {
+  confirmAction(
+    "Delete Mock",
+    `Delete "${mk}"? All data will be lost.`,
+    () => {
+      delete appData[mk];
+      delete appMeta[mk];
+      scheduleSave();
+      renderDashboard();
+      showToast("Mock deleted.");
+    }
+  );
+}
+
+function clearMock() {
+  confirmAction(
+    "Clear Mock Data",
+    `Clear all question data for "${currentMock}"? This cannot be undone.`,
+    () => {
+      appData[currentMock] = createEmptyMock();
+      scheduleSave();
+      renderMockDetail();
+      showToast("Mock cleared.");
+    }
+  );
+}
+
+/* ================================================================
+   MOCK DATE HANDLER
+   ================================================================ */
+function onMockDateChange(val) {
+  if (!currentMock) return;
+  if (!appMeta[currentMock]) appMeta[currentMock] = { date: "" };
+  appMeta[currentMock].date = val;
+  scheduleSave();
+}
+
+/* ================================================================
+   FIRESTORE SYNC
+   ================================================================ */
+function scheduleSave() {
+  setSyncStatus("syncing");
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => saveToFirestore(), 1200);
+}
+
+async function saveToFirestore(silent = false) {
+  try {
+    // Use .set() WITHOUT merge so deleted/renamed keys are fully removed from Firestore
+    await db.collection(COLLECTION).doc(DEVICE_ID).set({ mocks: appData, meta: appMeta });
+    setSyncStatus("synced");
+    if (!silent) showToast("Saved to cloud ✓");
+  } catch(e) {
+    console.error("Firestore save error:", e);
+    setSyncStatus("error");
+    if (!silent) showToast("Cloud save failed.", true);
+  }
+}
+
+async function forceSave() {
+  setSyncStatus("syncing");
+  await saveToFirestore(false);
+}
+
+/* ================================================================
+   SYNC STATUS UI
+   ================================================================ */
+function setSyncStatus(state) {
+  const dot   = document.getElementById("sync-dot");
+  const label = document.getElementById("sync-label");
+  dot.className = "";
+  dot.classList.add(state);
+  if (state === "syncing") label.textContent = "Syncing…";
+  else if (state === "synced") label.textContent = "Synced";
+  else if (state === "error") label.textContent = "Offline";
+  else label.textContent = "–";
+}
+
+/* ================================================================
+   CONFIRM MODAL
+   ================================================================ */
+let _confirmCb = null;
+function confirmAction(title, msg, cb) {
+  document.getElementById("confirm-title").textContent = title;
+  document.getElementById("confirm-msg").textContent   = msg;
+  _confirmCb = cb;
+  document.getElementById("confirm-modal").classList.remove("hidden");
+}
+function closeConfirm() {
+  document.getElementById("confirm-modal").classList.add("hidden");
+  _confirmCb = null;
+}
+document.getElementById("confirm-ok").addEventListener("click", () => {
+  if (_confirmCb) _confirmCb();
+  closeConfirm();
+});
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = isError ? "error" : "";
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+/* ================================================================
+   LOADING
+   ================================================================ */
+function hideLoading() {
+  const el = document.getElementById("loading");
+  el.classList.add("fade");
+  setTimeout(() => el.style.display = "none", 500);
+}
+
+
+/* ================================================================
+   TAB SWITCHING
+   ================================================================ */
+function switchMockTab(tab, btn) {
+  ['analysis','questions','revision'].forEach(t => {
+    const el = document.getElementById('mock-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.feature-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab === 'revision') renderRevisionLog();
+}
+
+function switchDashTab(tab, btn) {
+  ['overview','compare','drilldown'].forEach(t => {
+    const el = document.getElementById('dash-panel-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+  document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (tab === 'compare') populateCompareSelects();
+  if (tab === 'drilldown') renderDrilldownPills();
+}
+
+/* ================================================================
+   FEATURE 2: REVISION LOG
+   ================================================================ */
+function renderRevisionLog() {
+  const el = document.getElementById('revision-log-content');
+  if (!el || !currentMock) return;
+  const data = appData[currentMock];
+  const wrong = [];
+  data.forEach((q, i) => {
+    if (q.status === 'Wrong') {
+      wrong.push({ num: i + 1, sec: getSection(i), error: q.error, remarks: q.remarks, reattempt: q.reattempt });
+    }
+  });
+  if (!wrong.length) {
+    el.innerHTML = '<div class="rev-empty">No wrong answers in this mock. 🎉</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">${wrong.length} wrong question(s) — review and revise these</div>
+    <div class="table-wrap">
+      <table class="revision-table">
+        <thead>
+          <tr>
+            <th>Q#</th>
+            <th>Section</th>
+            <th>Error Type</th>
+            <th>Reattempt</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${wrong.map(q => `
+            <tr>
+              <td class="rev-q-num">${q.num}</td>
+              <td><span class="rev-section-${q.sec.toLowerCase()}">${q.sec}</span></td>
+              <td>${q.error ? '<span class="rev-error">' + q.error + '</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+              <td style="text-align:center">${q.reattempt ? '✅' : '—'}</td>
+              <td class="rev-remark">${escapeHtml(q.remarks) || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================================================================
+   FEATURE 3: MOCK COMPARISON
+   ================================================================ */
+function populateCompareSelects() {
+  const mocks = getMockList().filter(mk => {
+    const sc = calcScore(appData[mk]);
+    return sc.attempted > 0;
+  });
+  ['compare-a','compare-b'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Select Mock —</option>' +
+      mocks.map(mk => `<option value="${mk}" ${mk === cur ? 'selected' : ''}>${mk}</option>`).join('');
+  });
+}
+
+function renderComparison() {
+  const a = document.getElementById('compare-a').value;
+  const b = document.getElementById('compare-b').value;
+  const out = document.getElementById('compare-output');
+  if (!a || !b || a === b) {
+    out.innerHTML = '<div class="rev-empty">Select two different mocks to compare.</div>';
+    return;
+  }
+  const scA = calcScore(appData[a]);
+  const scB = calcScore(appData[b]);
+  const errA = calcErrors(appData[a]);
+  const errB = calcErrors(appData[b]);
+
+  function cls(vA, vB, higherIsBetter = true) {
+    if (vA === vB) return ['same','same'];
+    if (higherIsBetter) return vA > vB ? ['better','worse'] : ['worse','better'];
+    return vA < vB ? ['better','worse'] : ['worse','better'];
+  }
+
+  const rows = [
+    ['Total Score',    scA.total.toFixed(2),    scB.total.toFixed(2),    ...cls(scA.total, scB.total)],
+    ['Max Score',      scA.maxScore,             scB.maxScore,             'same','same'],
+    ['SUPR Score',     scA.suprScore.toFixed(2), scB.suprScore.toFixed(2),...cls(scA.suprScore, scB.suprScore)],
+    ['REAP Score',     scA.reapScore.toFixed(2), scB.reapScore.toFixed(2),...cls(scA.reapScore, scB.reapScore)],
+    ['Accuracy',       scA.accuracy+'%',         scB.accuracy+'%',         ...cls(+scA.accuracy, +scB.accuracy)],
+    ['Correct',        scA.correct,              scB.correct,              ...cls(scA.correct, scB.correct)],
+    ['Wrong',          scA.wrong,                scB.wrong,                ...cls(scA.wrong, scB.wrong, false)],
+    ['Unattempted',    scA.unattempted,           scB.unattempted,          ...cls(scA.unattempted, scB.unattempted, false)],
+    ['+ve Score',      '+'+scA.posScore.toFixed(2), '+'+scB.posScore.toFixed(2), ...cls(scA.posScore, scB.posScore)],
+    ['-ve Score',      '-'+scA.negScore.toFixed(2), '-'+scB.negScore.toFixed(2), ...cls(scA.negScore, scB.negScore, false)],
+    ['Biggest Error',  errA.biggest||'—',         errB.biggest||'—',       'same','same'],
+  ];
+
+  const maxScore = Math.max(scA.maxScore, scB.maxScore) || 1;
+  const barA = (scA.total / maxScore * 100).toFixed(1);
+  const barB = (scB.total / maxScore * 100).toFixed(1);
+
+  out.innerHTML = `
+    <div class="compare-diff-bar" style="margin-bottom:20px;">
+      <div class="diff-label">${a} (cyan) vs ${b} (purple) — Score bar</div>
+      <div class="diff-track"><div class="diff-fill-a" style="width:${Math.max(0,barA)}%"></div></div>
+      <div class="diff-track"><div class="diff-fill-b" style="width:${Math.max(0,barB)}%"></div></div>
+    </div>
+    <div class="compare-grid">
+      <div class="compare-col">
+        <div class="compare-col-title">${a}</div>
+        ${rows.map(r => `<div class="compare-row"><span class="compare-lbl">${r[0]}</span><span class="compare-val ${r[3]}">${r[1]}</span></div>`).join('')}
+      </div>
+      <div class="compare-col" style="border-color:var(--accent2);">
+        <div class="compare-col-title" style="color:var(--accent2);">${b}</div>
+        ${rows.map(r => `<div class="compare-row"><span class="compare-lbl">${r[0]}</span><span class="compare-val ${r[4]}">${r[2]}</span></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   FEATURE 6: ERROR DRILLDOWN
+   ================================================================ */
+let activeDrilldownError = null;
+
+function renderDrilldownPills() {
+  const pillsEl = document.getElementById('drilldown-pills');
+  if (!pillsEl) return;
+  // Count errors across all mocks
+  const counts = {};
+  ERROR_TYPES.forEach(e => { counts[e] = 0; });
+  getMockList().forEach(mk => {
+    appData[mk].forEach(q => {
+      if (q.status === 'Wrong' && q.error && counts[q.error] !== undefined) counts[q.error]++;
+    });
+  });
+  const active = ERROR_TYPES.filter(e => counts[e] > 0);
+  if (!active.length) {
+    pillsEl.innerHTML = '<div class="rev-empty">No errors logged yet across any mock.</div>';
+    return;
+  }
+  pillsEl.innerHTML = active
+    .sort((a,b) => counts[b] - counts[a])
+    .map(e => `
+      <div class="drilldown-pill ${activeDrilldownError === e ? 'active' : ''}"
+           onclick="drilldownByError('${e}')">
+        ${e} <span style="opacity:0.6">(${counts[e]})</span>
+      </div>
+    `).join('');
+  if (activeDrilldownError) drilldownByError(activeDrilldownError);
+}
+
+function drilldownByError(errorType) {
+  activeDrilldownError = errorType;
+  // Re-render pills to update active state
+  const pills = document.querySelectorAll('.drilldown-pill');
+  pills.forEach(p => {
+    p.classList.toggle('active', p.textContent.trim().startsWith(errorType));
+  });
+
+  const rows = [];
+  getMockList().forEach(mk => {
+    appData[mk].forEach((q, i) => {
+      if (q.status === 'Wrong' && q.error === errorType) {
+        rows.push({
+          mock: mk,
+          num: i + 1,
+          sec: getSection(i),
+          remarks: q.remarks,
+          reattempt: q.reattempt
+        });
+      }
+    });
+  });
+
+  const out = document.getElementById('drilldown-output');
+  if (!rows.length) {
+    out.innerHTML = '<div class="rev-empty">No questions found for this error type.</div>';
+    return;
+  }
+
+  out.innerHTML = `
+    <div style="font-size:11px; color:var(--muted); margin-bottom:12px;">
+      ${rows.length} question(s) across all mocks with <strong style="color:var(--danger)">${errorType}</strong>
+    </div>
+    <div class="table-wrap">
+      <table class="drilldown-table">
+        <thead>
+          <tr>
+            <th>Mock</th>
+            <th>Q#</th>
+            <th>Section</th>
+            <th>Reattempt</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td><span class="drilldown-mock-tag">${r.mock}</span></td>
+              <td style="font-weight:700">${r.num}</td>
+              <td><span class="rev-section-${r.sec.toLowerCase()}">${r.sec}</span></td>
+              <td style="text-align:center">${r.reattempt ? '✅' : '—'}</td>
+              <td class="rev-remark">${escapeHtml(r.remarks) || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* ================================================================
+   FEATURE 8: EXPORT PDF
+   ================================================================ */
+function exportMockPDF() {
+  if (!currentMock) return;
+  const ph = document.getElementById('print-header');
+  if (ph) {
+    const sc = calcScore(appData[currentMock]);
+    const date = (appMeta[currentMock] && appMeta[currentMock].date) ? ' • ' + appMeta[currentMock].date : '';
+    ph.textContent = `UGEE Mock Analyser — ${currentMock}${date} — Score: ${sc.total.toFixed(2)}/${sc.maxScore}`;
+  }
+  // Switch to questions tab so full table is visible in print
+  switchMockTab('questions', null);
+  setTimeout(() => {
+    window.print();
+    // Restore analysis tab after print
+    setTimeout(() => {
+      switchMockTab('analysis', document.querySelector('.feature-tab'));
+      const firstTab = document.querySelector('.feature-tab');
+      if (firstTab) firstTab.classList.add('active');
+    }, 500);
+  }, 200);
+}
+
+/* ================================================================
+   UTILITY
+   ================================================================ */
+function escapeHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>
