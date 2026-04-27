@@ -957,16 +957,16 @@ body {
       <div class="dashboard-header">
         <div>
           <div class="dashboard-title">Performance Dashboard</div>
-          <div class="dashboard-subtitle">UGEE Preparation Analytics • Personal Tracker</div>
+          <div class="dashboard-subtitle">UGEE Mock Analytics</div>
         </div>
         <button class="btn btn-primary" onclick="createNewMock()">+ New Mock</button>
       </div>
 
       <!-- Dashboard tabs -->
       <div class="dash-tabs">
-        <button class="dash-tab active" onclick="switchDashTab('overview',this)">📊 Overview</button>
-        <button class="dash-tab" onclick="switchDashTab('compare',this)">⚖️ Compare Mocks</button>
-        <button class="dash-tab" onclick="switchDashTab('drilldown',this)">🔍 Error Drilldown</button>
+        <button class="dash-tab active" onclick="switchDashTab('overview',this)">Overview</button>
+        <button class="dash-tab" onclick="switchDashTab('compare',this)">Compare Mocks</button>
+        <button class="dash-tab" onclick="switchDashTab('drilldown',this)">Error Drilldown</button>
       </div>
 
       <!-- PANEL: Overview -->
@@ -1548,7 +1548,7 @@ function renderDashboard() {
           : 'No data yet'}
       </div>
       <div class="mock-card-meta" style="margin-top:3px; color:var(--muted);">
-        ${(appMeta[mk] && appMeta[mk].date) ? '📅 ' + appMeta[mk].date : ''}
+        ${(appMeta[mk] && appMeta[mk].date) ? '🗓️ ' + appMeta[mk].date : ''}
       </div>
       <div class="mock-card-bar">
         <div class="mock-card-bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div>
