@@ -1051,7 +1051,7 @@ body {
           <input type="text" class="mock-title-edit" id="mock-name-edit" value="" onblur="renameMock(this.value)" />
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-ghost btn-sm" onclick="exportMockPDF()">⬇ Export PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportMockPDF()">Export PDF</button>
           <button class="btn btn-ghost btn-sm" onclick="clearMock()">Clear All</button>
           <button class="btn btn-danger btn-sm" onclick="deleteMock()">Delete Mock</button>
         </div>
@@ -1069,10 +1069,10 @@ body {
 
       <!-- Feature tabs -->
       <div class="feature-tabs">
-        <button class="feature-tab active" onclick="switchMockTab('analysis',this)">📈 Analysis</button>
-        <button class="feature-tab" onclick="switchMockTab('questions',this)">📋 Questions</button>
-        <button class="feature-tab" onclick="switchMockTab('revision',this)">📝 Revision Log</button>
-        <button class="btn btn-ghost btn-sm bulk-toggle" id="bulk-toggle-btn" style="display:none;" onclick="toggleBulkBar()">⚡ Bulk Fill</button>
+        <button class="feature-tab active" onclick="switchMockTab('analysis',this)">Analysis</button>
+        <button class="feature-tab" onclick="switchMockTab('questions',this)">Questions</button>
+        <button class="feature-tab" onclick="switchMockTab('revision',this)">Revision Log</button>
+        <button class="btn btn-ghost btn-sm bulk-toggle" id="bulk-toggle-btn" style="display:none;" onclick="toggleBulkBar()">Bulk Fill</button>
       </div>
 
       <!-- TAB: Analysis -->
@@ -1152,7 +1152,7 @@ body {
 <!-- =================== JAVASCRIPT =================== -->
 <script>
 /* ================================================================
-   FIREBASE CONFIG — REPLACE WITH YOUR OWN
+   FIREBASE CONFIG
    ================================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyBPbhgyFDRotRh-IifA0TSlj34A_MdnQgY",
